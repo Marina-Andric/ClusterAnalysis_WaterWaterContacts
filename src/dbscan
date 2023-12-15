@@ -1,0 +1,29 @@
+from sklearn.cluster import DBSCAN
+from data_process import import_data
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import numpy as np
+
+
+def dbscan(set, eps, min_samples, cols):
+
+       data_original = import_data(set)
+
+       data = data_original[cols]
+
+       ref_codes = data_original['Refcode']
+
+       data_original.drop(columns=['Refcode'], axis=1, inplace=True)
+
+       sc = MinMaxScaler()
+
+       data_std = sc.fit_transform(data)
+
+       db = DBSCAN(eps=eps, min_samples=min_samples, metric='euclidean', n_jobs=-1).fit(data_std)
+       
+       labels = db.labels_
+
+       data_original['cluster'] = labels
+
+       data_original['Refcode'] = ref_codes
+
+       return data_original

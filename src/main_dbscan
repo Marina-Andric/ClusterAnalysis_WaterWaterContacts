@@ -1,0 +1,113 @@
+from sklearn.metrics import silhouette_score
+import numpy as np
+from dbscan import dbscan
+from copy import copy
+
+
+columns_all = ['ΔE', 'P1/P2', 'O…O', 'O-H-O', 'O_H1-O_H3', 'O_H1-O_H4', 'O_H2-O_H3',
+       'O_H2-O_H4', 'min H…O', 'min H…H', 'H1…H4',
+       'H-O-H-H3', 'H-O-H-O', 'H-O-H-H4', 'O-H1-H3', 'O-H1-H4', 'H1-O-H2',
+       'H3-O-H4', 'R(H1O)', 'r(H1O)', 'R(H1H3)', 'r(H1H3)', 'R(H1H4)',
+       'r(H1H4)']
+
+
+
+for set in ['all_pos', 'all_neg', 'all']:
+
+       silhouetter_index = 0
+       
+       best_parameters = {'cluster2': {'eps' : 0, 'minpts': 0, 'features' : [], 'silhouetter_index' : 0, 'noise' : 0},
+                          'cluster3' : {'eps' : 0, 'minpts': 0, 'features' : [], 'silhouetter_index' : 0, 'noise' : 0},
+                          'cluster4' : {'eps' : 0, 'minpts': 0, 'features' : [], 'silhouetter_index' : 0, 'noise' : 0},
+                          'cluster5' : {'eps' : 0, 'minpts': 0, 'features' : [], 'silhouetter_index' : 0, 'noise' : 0},
+                          'cluster6' : {'eps' : 0, 'minpts': 0, 'features' : [], 'silhouetter_index' : 0, 'noise' : 0}}
+
+       for cur_num_clusters in range(2, 7):
+              print("Clustering with " + str(cur_num_clusters) + " clusters.")
+
+              features = ['ΔE']
+              for feature_length in range(2, len(columns_all)+1):
+                     
+                     print("Feature length: ", feature_length)
+                     found = 0
+                     cols = copy(features)
+                     remaining_features = [item for item in columns_all if item not in features]
+                     if len(remaining_features) == 0:
+                            break
+                     
+                     current_loop_best_feature = remaining_features[0]
+                     current_loop_max_silhouetter_index = {'cluster2':0, 'cluster3':0,'cluster4':0,'cluster5':0,'cluster6':0,}
+                     
+                     for current_feature in remaining_features:
+                            cols.append(current_feature)
+                            print("Current features: ", cols)
+
+                            eps_vals = np.arange(0.01, 0.3, 0.03)
+                            minpts_vals = np.arange(5, 500, 10)
+
+                            silhouette_indexes = []
+
+                            for eps in eps_vals:
+                                   for min_samples in minpts_vals:
+                                          
+                                          res_dbscan = dbscan(set, eps, min_samples, cols)
+
+                                          cluster = res_dbscan['cluster']
+                                          noise = 0
+                                          if -1 in np.unique(cluster):
+                                                 noise = np.round(sum([1 for item in cluster if item==-1])/sum([1 for item in cluster]), 2)
+
+                                                 n_cluster = len(np.unique(cluster)) - 1
+                                                 res_dbscan = res_dbscan[res_dbscan['cluster'] != -1]
+                                                 if noise > 0.1:
+                                                        continue
+                                          else:
+                                                 n_cluster = len(np.unique(cluster))
+
+                                          if n_cluster == 1 or n_cluster > 6:
+                                                 continue
+
+                                          silhouetter_index = silhouette_score(res_dbscan[cols], res_dbscan['cluster'])
+
+                                          if n_cluster != cur_num_clusters:
+                                              if silhouetter_index > best_parameters['cluster'+str(n_cluster)]['silhouetter_index']:
+                                                  print("Update for cluster " + str(n_cluster))
+                                                  print('SI: ', silhouetter_index, 'eps: ', eps, 'min samples: ',
+                                                        min_samples)
+                                                  best_parameters['cluster' + str(n_cluster)][
+                                                      'silhouetter_index'] = silhouetter_index
+                                                  best_parameters['cluster' + str(n_cluster)]['eps'] = eps
+                                                  best_parameters['cluster' + str(n_cluster)]['minpts'] = min_samples
+                                                  best_parameters['cluster' + str(n_cluster)]['features'] = copy(
+                                                      features)
+                                                  best_parameters['cluster' + str(n_cluster)]['noise'] = noise
+                                                  continue
+
+                                          if silhouetter_index > current_loop_max_silhouetter_index['cluster'+str(n_cluster)]:
+                                              current_loop_max_silhouetter_index['cluster'+str(n_cluster)] = silhouetter_index
+                                              current_loop_best_feature = current_feature
+
+ 
+                                          if silhouetter_index > best_parameters['cluster'+str(n_cluster)]['silhouetter_index']:
+                                                 found += 1
+ 
+                                                 if found > 1:
+                                                        features = features[:-1]
+                                                 features.append(current_feature)
+ 
+                                                 print("Update for cluster " + str(n_cluster))
+                                                 print('SI: ', silhouetter_index, 'eps: ', eps, 'min samples: ', min_samples)
+                                                 best_parameters['cluster'+ str(n_cluster)]['silhouetter_index'] = silhouetter_index
+                                                 best_parameters['cluster'+ str(n_cluster)]['eps'] = eps
+                                                 best_parameters['cluster'+ str(n_cluster)]['minpts'] = min_samples
+                                                 best_parameters['cluster'+ str(n_cluster)]['features'] = copy(features)
+                                                 best_parameters['cluster' + str(n_cluster)]['noise'] = noise
+                            cols = [item for item in cols if item != current_feature]
+
+                     if found == 0:
+                            print("No more useful features. Added feature: ", current_loop_best_feature)
+                            features.append(current_loop_best_feature)
+ 
+       print("Best parameters", best_parameters)
+
+ 

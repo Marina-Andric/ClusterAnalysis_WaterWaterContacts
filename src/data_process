@@ -1,0 +1,12 @@
+import pandas as pd
+
+def import_data(set):
+
+    if set == 'all':
+        data = pd.read_csv('data/all_contacts', encoding='utf_8')
+    elif set == 'all_neg':
+        data = pd.read_csv('data/neg_contacts', encoding='utf_8')
+    elif set == 'all_pos':
+        data = pd.read_csv('data/pos_contacts', encoding='utf_8')
+
+    return data
