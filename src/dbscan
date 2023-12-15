@@ -1,7 +1,7 @@
 from sklearn.cluster import DBSCAN
 from data_process import import_data
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
 
 
 def dbscan(set, eps, min_samples, cols):
